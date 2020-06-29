@@ -212,15 +212,8 @@ Load User Roles
 
 Setup the demonstration accounts and population:
 
-* Launch a shell inside the sara-alert-enrollment container: `/usr/local/bin/docker-compose -f docker-compose.yml -f docker-compose.prod.yml run sara-alert-enrollment /bin/sh`
-* Remove the protections for running the demonstration setup tasks only in development mode:
-  * `vi lib/tasks/demo.rake`
-  * Delete the environment checks at the top of the `setup` and `populate` tasks
-  * Save and close the file
-* Execute the demonstration rake tasks:
-  * `bin/bundle exec rake demo:setup`
-  * `bin/bundle exec rake demo:populate`
-* Exit the container with `exit`
+* `/usr/local/bin/docker-compose -f docker-compose.yml -f docker-compose.prod.yml run -e DISABLE_DATABASE_ENVIRONMENT_CHECK=true sara-alert-enrollment bin/bundle exec rake demo:setup`
+* `/usr/local/bin/docker-compose -f docker-compose.yml -f docker-compose.prod.yml run -e DISABLE_DATABASE_ENVIRONMENT_CHECK=true sara-alert-enrollment bin/bundle exec rake demo:populate`
 
 The applications should be running on port 443 with Nginx proxying traffic between.
 
