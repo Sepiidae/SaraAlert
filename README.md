@@ -2,6 +2,7 @@
 
 [![Actions Tests](https://github.com/SaraAlert/SaraAlert/workflows/Tests/badge.svg)](https://github.com/SaraAlert/SaraAlert/actions)
 [![Actions Static Analysis](https://github.com/SaraAlert/SaraAlert/workflows/Static%20Analysis/badge.svg)](https://github.com/SaraAlert/SaraAlert/actions)
+[![Actions Container Scan](https://github.com/SaraAlert/SaraAlert/workflows/Container%20Scan/badge.svg)](https://github.com/SaraAlert/SaraAlert/actions)
 [![Release](https://img.shields.io/github/v/tag/SaraAlert/SaraAlert)](https://github.com/SaraAlert/SaraAlert/tags)
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](LICENSE.md)
 
@@ -81,11 +82,7 @@ bundle exec sidekiq -q default -q mailers
 
 ##### Whenever
 
-The [Whenever](https://github.com/javan/whenever) gem is used to schedule jobs. This gem uses the contents of `config/schedule.rb` to generate a crontab file. These jobs include:
-
-* Automatically closing out monitorees after the monitoring period
-* Purging old monitoree records
-* Updating system analytics
+The [Whenever](https://github.com/javan/whenever) gem is used to help schedule jobs. This gem uses the contents of `config/schedule.rb` to generate a crontab file.
 
 You must update your crontab for these jobs to run periodically (defined in `config/schedule.rb`). To do so run:
 
@@ -105,6 +102,8 @@ bundle exec whenever --update-crontab
       - Caches analytics information for faster retrieval
   * `SendAssessmentsJob`
       - Send assessment reminders to monitorees
+
+NOTE: In any production instance, these jobs should be handled outside of any of the containers (they should be scheduled and launched via crontab by the host).
 
 #### Running
 
@@ -159,8 +158,7 @@ This results in a 'split architecture' where multiple instances of the SaraAlert
 A key portion of this is the use of the Nginx reverse proxy container. The configuration (located at `./nginx.conf`) will route traffic from 'untrusted' users submitting assessments to the `dt-net-assessment` application while, at the same time, enrollers and epidemiologists are routed to the enrollment database.
 
 Below is a graphic depicting the services and applications present on each network:
-
-![SaraAlertDockerNetworks](https://user-images.githubusercontent.com/3009651/78150057-c27ec300-7404-11ea-8db3-4c65666f5d60.png)
+![SaraAlertDockerNetworks](https://user-images.githubusercontent.com/3009651/90296500-a7fc3200-de59-11ea-873b-f690c52509bc.png)
 
 **Environment Variable Setup**
 

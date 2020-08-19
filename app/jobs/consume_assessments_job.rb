@@ -24,7 +24,7 @@ class ConsumeAssessmentsJob < ApplicationJob
         end
 
         # Get list of dependents excluding the patient itself.
-        dependents = patient.dependents.where.not(id: patient.id)
+        dependents = patient.dependents_exclude_self
         if message['response_status'] == 'no_answer_voice'
           # If nobody answered, nil out the last_reminder_sent field so the system will try calling again
           patient.update(last_assessment_reminder_sent: nil)
