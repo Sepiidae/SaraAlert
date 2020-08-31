@@ -16,24 +16,24 @@ class PublicHealthTest < ApplicationSystemTestCase
   ## Dashboard
 
   test 'verify patient information on dashboard' do
-    @@public_health_test_helper.verify_patients_on_dashboard('locals1c2_epi', false)
+    @@public_health_test_helper.verify_patients_on_dashboard('locals1c2_epi', verify_scope: false)
   end
 
   test 'verify jurisdiction scope filtering logic on dashboard for state epi' do
-    @@public_health_test_helper.verify_patients_on_dashboard('state1_epi_enroller', true)
+    @@public_health_test_helper.verify_patients_on_dashboard('state1_epi_enroller', verify_scope: true)
   end
 
   test 'verify jurisdiction scope filtering logic on dashboard for local epi' do
-    @@public_health_test_helper.verify_patients_on_dashboard('locals1c1_epi', true)
+    @@public_health_test_helper.verify_patients_on_dashboard('locals1c1_epi', verify_scope: true)
   end
 
   test 'verify assigned user filtering logic on dashboard for state epi' do
-    @@public_health_test_helper.verify_patients_on_dashboard('state2_epi', false)
+    @@public_health_test_helper.verify_patients_on_dashboard('state2_epi', verify_scope: false)
   end
 
   test 'verify assigned user filtering logic on dashboard for local epi' do
-    @@public_health_test_helper.verify_patients_on_dashboard('locals2c3_epi', false)
-    @@public_health_test_helper.verify_patients_on_dashboard('locals2c4_epi', false)
+    @@public_health_test_helper.verify_patients_on_dashboard('locals2c3_epi', verify_scope: false)
+    @@public_health_test_helper.verify_patients_on_dashboard('locals2c4_epi', verify_scope: false)
   end
 
   test 'verify patient details and reports' do
@@ -43,40 +43,45 @@ class PublicHealthTest < ApplicationSystemTestCase
 
   test 'bulk edit case status from exposure to isolation' do
     @@public_health_test_helper.bulk_edit_update_case_status('state1_epi', %w[patient_1 patient_2], :exposure, 'all', 'Confirmed',
-                                                             'Continue Monitoring in Isolation Workflow', false)
+                                                             'Continue Monitoring in Isolation Workflow', apply_to_group: false)
   end
 
   test 'bulk edit case status from exposure to closed' do
-    @@public_health_test_helper.bulk_edit_update_case_status('state1_epi', %w[patient_1 patient_2], :exposure, 'all', 'Confirmed', 'End Monitoring', false)
+    @@public_health_test_helper.bulk_edit_update_case_status('state1_epi', %w[patient_1 patient_2], :exposure, 'all', 'Confirmed',
+                                                             'End Monitoring', apply_to_group: false)
   end
 
   test 'bulk edit case status from isolation to exposure' do
-    @@public_health_test_helper.bulk_edit_update_case_status('state1_epi', %w[patient_45 patient_47], :isolation, 'all', 'Unknown', nil, false)
+    @@public_health_test_helper.bulk_edit_update_case_status('state1_epi', %w[patient_45 patient_47], :isolation, 'all', 'Unknown',
+                                                             nil, apply_to_group: false)
   end
 
   test 'bulk edit case status from exposure to isolation with household' do
     @@public_health_test_helper.bulk_edit_update_case_status('state1_epi', %w[patient_52], :exposure, 'all', 'Confirmed',
-                                                             'Continue Monitoring in Isolation Workflow', true)
+                                                             'Continue Monitoring in Isolation Workflow', apply_to_group: true)
   end
 
   test 'bulk edit case status from isolation to exposure with household' do
-    @@public_health_test_helper.bulk_edit_update_case_status('state1_epi', %w[patient_54], :isolation, 'all', 'Unknown', nil, true)
+    @@public_health_test_helper.bulk_edit_update_case_status('state1_epi', %w[patient_54], :isolation, 'all', 'Unknown', nil,
+                                                             apply_to_group: true)
   end
 
   test 'bulk edit close records from exposure workflow' do
-    @@public_health_test_helper.bulk_edit_close_records('state1_epi', %w[patient_1 patient_2], :exposure, 'all', '', '', false)
+    @@public_health_test_helper.bulk_edit_close_records('state1_epi', %w[patient_1 patient_2], :exposure, 'all', '', '',
+                                                        apply_to_group: false)
   end
 
   test 'bulk edit close records from isolation workflow' do
-    @@public_health_test_helper.bulk_edit_close_records('state1_epi', %w[patient_45 patient_47], :isolation, 'all', 'Completed Monitoring', 'reasoning', false)
+    @@public_health_test_helper.bulk_edit_close_records('state1_epi', %w[patient_45 patient_47], :isolation, 'all', 'Completed Monitoring',
+                                                        'reasoning', apply_to_group: false)
   end
 
   test 'bulk edit close records from exposure workflow with household' do
-    @@public_health_test_helper.bulk_edit_close_records('state1_epi', %w[patient_52], :exposure, 'all', 'Duplicate', '', true)
+    @@public_health_test_helper.bulk_edit_close_records('state1_epi', %w[patient_52], :exposure, 'all', 'Duplicate', '', apply_to_group: true)
   end
 
   test 'bulk edit close records from isolation workflow with household' do
-    @@public_health_test_helper.bulk_edit_close_records('state1_epi', %w[patient_54], :isolation, 'all', '', 'details', true)
+    @@public_health_test_helper.bulk_edit_close_records('state1_epi', %w[patient_54], :isolation, 'all', '', 'details', apply_to_group: true)
   end
 
   ## Patient page
@@ -105,28 +110,41 @@ class PublicHealthTest < ApplicationSystemTestCase
   end
 
   test 'update assigned jurisdiction' do
-    @@public_health_test_helper.update_assigned_jurisdiction('state2_epi', 'patient_11', 'pui', 'USA, State 2, County 4', 'details', true, true)
-    @@public_health_test_helper.update_assigned_jurisdiction('state2_epi', 'patient_10', 'pui', 'USA, State 1', 'details', true, false)
+    @@public_health_test_helper.update_assigned_jurisdiction('state2_epi', 'patient_11', 'pui', 'USA, State 2, County 4', 'details',
+                                                             valid_jurisdiction: true, under_hierarchy: true)
+    @@public_health_test_helper.update_assigned_jurisdiction('state2_epi', 'patient_10', 'pui', 'USA, State 1', 'details',
+                                                             valid_jurisdiction: true, under_hierarchy: false)
   end
 
   test 'update assigned jurisdiction validation' do
-    @@public_health_test_helper.update_assigned_jurisdiction('state2_epi', 'patient_11', 'pui', 'Fake Jurisdiction', 'details', false, true)
+    @@public_health_test_helper.update_assigned_jurisdiction('state2_epi', 'patient_11', 'pui', 'Fake Jurisdiction', 'details',
+                                                             valid_jurisdiction: false, under_hierarchy: true)
   end
 
   test 'update assigned user' do
-    @@public_health_test_helper.update_assigned_user('state1_epi', 'patient_2', 'all', '9', 'reasoning', true, true)
-    @@public_health_test_helper.update_assigned_user('state1_epi', 'patient_2', 'all', '', 'reasoning', true, true)
-    @@public_health_test_helper.update_assigned_user('state1_epi', 'patient_4', 'all', '1444', 'reason', true, true)
+    @@public_health_test_helper.update_assigned_user('state1_epi', 'patient_2', 'all', '9', 'reasoning', valid_assigned_user: true,
+                                                                                                         changed: true)
+    @@public_health_test_helper.update_assigned_user('state1_epi', 'patient_2', 'all', '', 'reasoning', valid_assigned_user: true,
+                                                                                                        changed: true)
+    @@public_health_test_helper.update_assigned_user('state1_epi', 'patient_4', 'all', '1444', 'reason', valid_assigned_user: true,
+                                                                                                         changed: true)
   end
 
   test 'update assigned user validation' do
-    @@public_health_test_helper.update_assigned_user('state1_epi', 'patient_2', 'all', '', 'reason', false, false)
-    @@public_health_test_helper.update_assigned_user('state1_epi', 'patient_4', 'all', '1444', '', false, false)
-    @@public_health_test_helper.update_assigned_user('state1_epi', 'patient_4', 'all', '0', 'reason', false, true)
-    @@public_health_test_helper.update_assigned_user('state1_epi', 'patient_4', 'all', '10000', '', false, true)
-    @@public_health_test_helper.update_assigned_user('state1_epi_enroller', 'patient_4', 'all', '-8', 'reason', false, true)
-    @@public_health_test_helper.update_assigned_user('state1_epi_enroller', 'patient_2', 'all', '1.5', '', false, true)
-    @@public_health_test_helper.update_assigned_user('state1_epi_enroller', 'patient_2', 'all', 'not valid', 'reason', false, true)
+    @@public_health_test_helper.update_assigned_user('state1_epi', 'patient_2', 'all', '', 'reason', valid_assigned_user: false,
+                                                                                                     changed: false)
+    @@public_health_test_helper.update_assigned_user('state1_epi', 'patient_4', 'all', '1444', '', valid_assigned_user: false,
+                                                                                                   changed: false)
+    @@public_health_test_helper.update_assigned_user('state1_epi', 'patient_4', 'all', '0', 'reason', valid_assigned_user: false,
+                                                                                                      changed: true)
+    @@public_health_test_helper.update_assigned_user('state1_epi', 'patient_4', 'all', '10000', '', valid_assigned_user: false,
+                                                                                                    changed: true)
+    @@public_health_test_helper.update_assigned_user('state1_epi_enroller', 'patient_4', 'all', '-8', 'reason', valid_assigned_user: false,
+                                                                                                                changed: true)
+    @@public_health_test_helper.update_assigned_user('state1_epi_enroller', 'patient_2', 'all', '1.5', '', valid_assigned_user: false,
+                                                                                                           changed: true)
+    @@public_health_test_helper.update_assigned_user('state1_epi_enroller', 'patient_2', 'all', 'not valid', 'reason',
+                                                     valid_assigned_user: false, changed: true)
   end
 
   test 'add report' do
@@ -211,11 +229,11 @@ class PublicHealthTest < ApplicationSystemTestCase
   end
 
   test 'import epi-x to exposure with duplicate patient and accept duplicates' do
-    @@public_health_test_helper.import_epi_x('state5_epi', :exposure, 'Epi-X-Format.xlsx', :valid, nil, true)
+    @@public_health_test_helper.import_epi_x('state5_epi', :exposure, 'Epi-X-Format.xlsx', :valid, nil, accept_duplicates: true)
   end
 
   test 'import epi-x to isolation with duplicate patient and reject duplicates' do
-    @@public_health_test_helper.import_epi_x('state5_epi', :isolation, 'Epi-X-Format.xlsx', :valid, nil, false)
+    @@public_health_test_helper.import_epi_x('state5_epi', :isolation, 'Epi-X-Format.xlsx', :valid, nil, accept_duplicates: false)
   end
 
   test 'import epi-x to isolation and validate file type' do
@@ -267,11 +285,11 @@ class PublicHealthTest < ApplicationSystemTestCase
   end
 
   test 'import sara alert format to isolation with duplicate patient and accept duplicates' do
-    @@public_health_test_helper.import_sara_alert_format('state5_epi', :isolation, 'Sara-Alert-Format.xlsx', :valid, nil, true)
+    @@public_health_test_helper.import_sara_alert_format('state5_epi', :isolation, 'Sara-Alert-Format.xlsx', :valid, nil, accept_duplicates: true)
   end
 
   test 'import sara alert format to exposure with duplicate patient and reject duplicates' do
-    @@public_health_test_helper.import_sara_alert_format('state5_epi', :exposure, 'Sara-Alert-Format.xlsx', :valid, nil, false)
+    @@public_health_test_helper.import_sara_alert_format('state5_epi', :exposure, 'Sara-Alert-Format.xlsx', :valid, nil, accept_duplicates: false)
   end
 
   test 'import sara alert format to exposure with custom jurisdictions' do

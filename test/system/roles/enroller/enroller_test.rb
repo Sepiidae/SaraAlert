@@ -19,7 +19,7 @@ class EnrollerTest < ApplicationSystemTestCase
   end
 
   test 'enroll monitoree with all fields' do
-    @@enroller_test_helper.enroll_monitoree('state1_epi_enroller', 'monitoree_2', true)
+    @@enroller_test_helper.enroll_monitoree('state1_epi_enroller', 'monitoree_2', is_epi: true)
   end
 
   test 'enroll monitoree with only required fields' do
@@ -27,11 +27,11 @@ class EnrollerTest < ApplicationSystemTestCase
   end
 
   test 'enroll monitoree with jurisdiction within hierarchy' do
-    @@enroller_test_helper.enroll_monitoree('state1_enroller', 'monitoree_5', false)
+    @@enroller_test_helper.enroll_monitoree('state1_enroller', 'monitoree_5', is_epi: false)
   end
 
   test 'epi enroll monitoree with any jurisdiction' do
-    @@enroller_test_helper.enroll_monitoree('state1_epi_enroller', 'monitoree_1', true)
+    @@enroller_test_helper.enroll_monitoree('state1_epi_enroller', 'monitoree_1', is_epi: true)
   end
 
   test 'add group member' do
