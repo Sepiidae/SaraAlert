@@ -29,25 +29,8 @@ class PatientMailer < ApplicationMailer
     url_contents = new_patient_assessment_jurisdiction_report_lang_url(patient.submission_token,
                                                                        lang&.to_s || 'en',
                                                                        patient.jurisdiction.unique_identifier[0, 32])
-    account_sid = ENV['TWILLIO_API_ACCOUNT']
-    auth_token = ENV['TWILLIO_API_KEY']
-    from = ENV['TWILLIO_SENDING_NUMBER']
-    messaging_service_sid = ENV['TWILLIO_MESSAGING_SERVICE_SID']
-    client = Twilio::REST::Client.new(account_sid, auth_token)
-    client.messages.create(
-      to: Phonelib.parse(patient.primary_telephone, 'US').full_e164,
-      body: intro_contents,
-      messaging_service_sid: messaging_service_sid
-    )
-    client.messages.create(
-      to: Phonelib.parse(patient.primary_telephone, 'US').full_e164,
-      body: url_contents,
-      messaging_service_sid: messaging_service_sid
-    )
-  rescue Twilio::REST::RestError => e
-    Rails.logger.warn e.error_message
-    add_fail_history_sms(patient)
-    patient.update(last_assessment_reminder_sent: DateTime.now)
+    TwilioSender.send_sms(patient, intro_contents)
+    TwilioSender.send_sms(patient, url_contents)
   end
 
   def enrollment_sms_text_based(patient)
@@ -57,20 +40,8 @@ class PatientMailer < ApplicationMailer
     lang = patient.select_language
     patient_name = "#{patient&.first_name&.first || ''}#{patient&.last_name&.first || ''}-#{patient&.calc_current_age || '0'}"
     contents = "#{I18n.t('assessments.sms.prompt.intro1', locale: lang)} #{patient_name} #{I18n.t('assessments.sms.prompt.intro2', locale: lang)}"
-    account_sid = ENV['TWILLIO_API_ACCOUNT']
-    auth_token = ENV['TWILLIO_API_KEY']
-    from = ENV['TWILLIO_SENDING_NUMBER']
-    messaging_service_sid = ENV['TWILLIO_MESSAGING_SERVICE_SID']
-    client = Twilio::REST::Client.new(account_sid, auth_token)
-    client.messages.create(
-      to: Phonelib.parse(patient.primary_telephone, 'US').full_e164,
-      body: contents,
-      messaging_service_sid: messaging_service_sid
-    )
-  rescue Twilio::REST::RestError => e
-    Rails.logger.warn e.error_message
-    add_fail_history_sms(patient)
-    patient.update(last_assessment_reminder_sent: DateTime.now)
+
+    TwilioSender.send_sms(patient, contents)
   end
 
   # Right now the wording of this message is the same as for enrollment
@@ -85,29 +56,14 @@ class PatientMailer < ApplicationMailer
       url_contents = new_patient_assessment_jurisdiction_report_lang_url(p.submission_token,
                                                                          lang&.to_s || 'en',
                                                                          patient.jurisdiction.unique_identifier[0, 32])
+      success = TwilioSender.send_sms(patient, intro_contents)
+      success = sucsess && TwilioSender.send_sms(patient, url_contents)
 
-      account_sid = ENV['TWILLIO_API_ACCOUNT']
-      auth_token = ENV['TWILLIO_API_KEY']
-      from = ENV['TWILLIO_SENDING_NUMBER']
-      messaging_service_sid = ENV['TWILLIO_MESSAGING_SERVICE_SID']
-      client = Twilio::REST::Client.new(account_sid, auth_token)
-      client.messages.create(
-        to: Phonelib.parse(num, 'US').full_e164,
-        body: intro_contents,
-        messaging_service_sid: messaging_service_sid
-      )
-      client.messages.create(
-        to: Phonelib.parse(num, 'US').full_e164,
-        body: url_contents,
-        messaging_service_sid: messaging_service_sid
-      )
-      add_success_history(p, patient)
+      add_success_history(p, patient) if success
+      add_fail_history_sms(patient) unless success
     end
     patient.update(last_assessment_reminder_sent: DateTime.now)
-  rescue Twilio::REST::RestError => e
-    Rails.logger.warn e.error_message
-    add_fail_history_sms(patient)
-    patient.update(last_assessment_reminder_sent: DateTime.now)
+
   end
 
   def assessment_sms_reminder(patient)
@@ -115,22 +71,9 @@ class PatientMailer < ApplicationMailer
 
     lang = patient.select_language
     contents = I18n.t('assessments.sms.prompt.reminder', locale: lang)
-    account_sid = ENV['TWILLIO_API_ACCOUNT']
-    auth_token = ENV['TWILLIO_API_KEY']
-    from = ENV['TWILLIO_SENDING_NUMBER']
-    messaging_service_sid = ENV['TWILLIO_MESSAGING_SERVICE_SID']
-    client = Twilio::REST::Client.new(account_sid, auth_token)
-    client.messages.create(
-      to: Phonelib.parse(patient.primary_telephone, 'US').full_e164,
-      body: contents,
-      messaging_service_sid: messaging_service_sid
-    )
-    add_success_history(patient, patient)
+    add_success_history(patient, patient) if TwilioSender.send_sms(patient, contents)
+
     # Always update the last contact time so the system does not try and send emails again.
-    patient.update(last_assessment_reminder_sent: DateTime.now)
-  rescue Twilio::REST::RestError => e
-    Rails.logger.warn e.error_message
-    add_fail_history_sms(patient)
     patient.update(last_assessment_reminder_sent: DateTime.now)
   end
 
@@ -154,29 +97,22 @@ class PatientMailer < ApplicationMailer
     # If the dependets are in a different jurisdiction they may end up with too many or too few symptoms in their response
     contents += I18n.t('assessments.sms.prompt.daily3', locale: lang) + patient.jurisdiction.hierarchical_condition_bool_symptoms_string(lang) + '.'
     contents += I18n.t('assessments.sms.prompt.daily4', locale: lang)
-    account_sid = ENV['TWILLIO_API_ACCOUNT']
-    auth_token = ENV['TWILLIO_API_KEY']
-    from = ENV['TWILLIO_SENDING_NUMBER']
-    messaging_service_sid = ENV['TWILLIO_MESSAGING_SERVICE_SID']
-    client = Twilio::REST::Client.new(account_sid, auth_token)
     threshold_hash = patient.jurisdiction.jurisdiction_path_threshold_hash
     # The medium parameter will either be SMS or VOICE
     params = { prompt: contents, patient_submission_token: patient.submission_token,
                threshold_hash: threshold_hash, medium: 'SMS', language: lang.to_s.split('-').first.upcase,
                try_again: I18n.t('assessments.sms.prompt.try-again', locale: lang),
                thanks: I18n.t('assessments.sms.prompt.thanks', locale: lang) }
-    client.studio.v1.flows(ENV['TWILLIO_STUDIO_FLOW']).executions.create(
-      to: Phonelib.parse(patient.primary_telephone, 'US').full_e164,
-      parameters: params,
-      messaging_service_sid: messaging_service_sid
-    )
-    add_success_history(patient, patient)
+
+    if TwilioSender.start_studio_flow(patient, params)
+      add_success_history(patient, patient)
+    else
+      add_fail_history_sms(patient)
+    end
+
     # Always update the last contact time so the system does not try and send emails again.
     patient.update(last_assessment_reminder_sent: DateTime.now)
-  rescue Twilio::REST::RestError => e
-    Rails.logger.warn e.error_message
-    add_fail_history_sms(patient)
-    patient.update(last_assessment_reminder_sent: DateTime.now)
+
   end
 
   def assessment_voice(patient)
@@ -200,10 +136,7 @@ class PatientMailer < ApplicationMailer
     # If the dependets are in a different jurisdiction they may end up with too many or too few symptoms in their response
     contents += I18n.t('assessments.phone.daily3', locale: lang) + patient.jurisdiction.hierarchical_condition_bool_symptoms_string(lang) + '?'
     contents += I18n.t('assessments.phone.daily4', locale: lang)
-    account_sid = ENV['TWILLIO_API_ACCOUNT']
-    auth_token = ENV['TWILLIO_API_KEY']
-    from = ENV['TWILLIO_SENDING_NUMBER']
-    client = Twilio::REST::Client.new(account_sid, auth_token)
+
     threshold_hash = patient.jurisdiction.jurisdiction_path_threshold_hash
     # The medium parameter will either be SMS or VOICE
     params = { prompt: contents, patient_submission_token: patient.submission_token,
@@ -211,18 +144,15 @@ class PatientMailer < ApplicationMailer
                intro: I18n.t('assessments.phone.intro', locale: lang),
                try_again: I18n.t('assessments.phone.try-again', locale: lang),
                thanks: I18n.t('assessments.phone.thanks', locale: lang) }
-    client.studio.v1.flows(ENV['TWILLIO_STUDIO_FLOW']).executions.create(
-      from: from,
-      to: Phonelib.parse(patient.primary_telephone, 'US').full_e164,
-      parameters: params
-    )
-    add_success_history(patient, patient)
+
+    if TwilioSender.start_studio_flow(patient, params)
+      add_success_history(patient, patient)
+    else
+      add_fail_history_sms(patient)
+    end
     # Always update the last contact time so the system does not try and send emails again.
     patient.update(last_assessment_reminder_sent: DateTime.now)
-  rescue Twilio::REST::RestError => e
-    Rails.logger.warn e.error_message
-    History.report_reminder(patient: patient, comment: "Sara Alert failed to call monitoree at #{patient.primary_telephone}.")
-    patient.update(last_assessment_reminder_sent: DateTime.now)
+
   end
 
   def assessment_email(patient)
@@ -265,6 +195,10 @@ class PatientMailer < ApplicationMailer
   def add_fail_history_sms(patient)
     comment = "Sara Alert attempted to send an SMS to #{patient.primary_telephone}, but the message could not be delivered."
     History.report_reminder(patient: patient, comment: comment)
+  end
+
+  def add_fail_history_voice(patient)
+    History.report_reminder(patient: patient, comment: "Sara Alert failed to call monitoree at #{patient.primary_telephone}.")
   end
 
   def add_fail_history_blank_field(patient, type)
